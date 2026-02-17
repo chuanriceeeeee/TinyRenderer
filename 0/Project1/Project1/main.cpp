@@ -245,6 +245,7 @@ int main(int argc, char** argv) {
     framebuffer2.write_tga_file("line2.tga");
     line3(ax, ay, bx, by, framebuffer3, blue);
     //sample way 3
+    line3(ax, ay, bx, by, framebuffer3, blue);
     line3(cx, cy, bx, by, framebuffer3, green);
     line3(cx, cy, ax, ay, framebuffer3, yellow);
     line3(ax, ay, cx, cy, framebuffer3, red);
