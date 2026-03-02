@@ -193,7 +193,7 @@ void line6(int x_a, int y_a, int x_b, int y_b, TGAImage& framebuffer, TGAColor c
         ierror += 2 * std::abs(y_b - y_a);
         if (ierror >= x_b-x_a)
         {
-            y += y_b > y_a ? 1 : -1;
+            y += y_b > y_a ? 1 : (-1);
             ierror -= 2 * (x_b - x_a);
         }
     }
