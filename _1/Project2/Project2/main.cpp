@@ -3,12 +3,16 @@
 #include <chrono>
 #include "model.h"
 #include "geometry.h"
+#include <algorithm>
 
 constexpr TGAColor white = { 255, 255, 255, 255 }; // attention, BGRA order
 constexpr TGAColor green = { 0, 255,   0, 255 };
 constexpr TGAColor red = { 0,   0, 255, 255 };
 constexpr TGAColor blue = { 255, 128,  64, 255 };
 constexpr TGAColor yellow = { 0, 200, 255, 255 };
+
+constexpr int width = 800;
+constexpr int height = 800;
 
 void line(int xa, int ya, int xb, int yb, TGAImage& framebuffer, TGAColor color)
 {
@@ -93,14 +97,14 @@ float triangle_area(int xa, int  ya, int xb, int yb, int xc, int yc)
 	return .5 * ((yb - ya) * (xb + xa) + (ya - yc) * (xa + xc) + (yc - yb) * (xc + xb));
 }
 
-void triangle(int xa, int ya, int xb, int yb, int xc, int yc, TGAImage& framebuffer, TGAColor color)
+void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, int zc, TGAImage& framebuffer, TGAColor color)
 {
 	int boxmax_x = std::max(std::max(xa, xb), xc);
 	int boxmax_y = std::max(std::max(ya, yb), yc);
 	int boxmin_x = std::min(std::min(xa, xb), xc);
 	int boxmin_y = std::min(std::min(ya, yb), yc);
 	double total_area = triangle_area(xa, ya, xb, yb, xc, yc);
-	if (total_area < 1) 
+	if (total_area < 0 ) 
 		return;
 
 #pragma omp parallel for
@@ -108,35 +112,50 @@ void triangle(int xa, int ya, int xb, int yb, int xc, int yc, TGAImage& framebuf
 	{
 		for (int y = boxmin_y; y <= boxmax_y; y++)
 		{
-			double PAB = triangle_area(xa, ya, xb, yb, x, y) / total_area;
-			double PAC = triangle_area(xb, yb, xc, yc, x, y) / total_area;
-			double PBC = triangle_area(xc, yc, xa, ya, x, y) / total_area;
-			if (PAB < 0 || PAC < 0 || PBC < 0) 
+			double alpha = triangle_area(xa, ya, xb, yb, x, y) / total_area;
+			double beta = triangle_area(xb, yb, xc, yc, x, y) / total_area;
+			double gamma= triangle_area(xc, yc, xa, ya, x, y) / total_area;
+			if (alpha < 0 || beta < 0 || gamma < 0) 
 				continue;
-			framebuffer.set(x, y, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>()});
+			double z_double = alpha * za + beta * zb + gamma * zc;
+			z_double = std::clamp(z_double, 0.0, 255.0);
+
+			unsigned char z =static_cast<unsigned char>(z_double);
+			framebuffer.set(x, y, {z,z,z,z});
 		}
 	}
 }
-
+vec4 project(vec4 vert) 
+{
+	return vec4(
+		(vert.x + 1) * width / 2,
+		(vert.y + 1) * height / 2,
+		(vert.z + 1) / 2.0  * 255.0 ,
+		0
+	);
+}
 int main(int argc, char** argv) {
-	constexpr int width = 800;
-	constexpr int height = 800;
-	TGAImage framebuffer_model(width, height, TGAImage::RGB);
+	TGAImage framebuffer_model(width, height, TGAImage::RGBA);
 	/*TGAImage framebuffer(width, height, TGAImage::RGB);
 	triangle(7, 45, 35, 100, 45, 60, framebuffer, red);
 	triangle(120, 35, 90, 5, 45, 110, framebuffer, white);
 	triangle(115, 83, 80, 90, 85, 120, framebuffer, green);
 	*/
-	Model* model = new Model("./obj/diablo3_pose.obj");
+	Model* model = new Model("./models/diablo3_pose.obj");
 	auto currrent = std::chrono::steady_clock::now();
 	for (int i = 0; i < model->nfaces(); i++)
 	{
 		vec4 vert_1 = model->vert(i, 0);
 		vec4 vert_2 = model->vert(i, 1);
 		vec4 vert_3 = model->vert(i, 2);
-		auto [x1,y1,z1] = (vert_1.x + 1) * width / 2, (vert_1.x + 1)* width / 2,(vert_1.x + 1) * width / 2;
-		
-		triangle(x1, y1, x2, y2, x3, y3, framebuffer_model, { static_cast < unsigned char>(255),static_cast < unsigned char>(255),static_cast < unsigned char>(255),static_cast <unsigned char>(255)});
+		auto [x1, y1, z1, temp1] = project(vert_1);
+		auto [x2, y2, z2, temp2] = project(vert_2);
+		auto [x3, y3, z3, temp3] = project(vert_3);
+
+
+
+		triangle(x1, y1, z1, x2, y2, z2, x3, y3, z3, framebuffer_model, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255) });
+	}
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double, std::milli> elapsed = end - currrent;
 	std::cout << elapsed<< std::endl;
