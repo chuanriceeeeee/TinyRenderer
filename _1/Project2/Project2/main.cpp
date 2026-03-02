@@ -113,7 +113,7 @@ void triangle(int xa, int ya, int xb, int yb, int xc, int yc, TGAImage& framebuf
 			double PBC = triangle_area(xc, yc, xa, ya, x, y) / total_area;
 			if (PAB < 0 || PAC < 0 || PBC < 0) 
 				continue;
-			framebuffer.set(x, y, color);
+			framebuffer.set(x, y, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>()});
 		}
 	}
 }
@@ -134,15 +134,9 @@ int main(int argc, char** argv) {
 		vec4 vert_1 = model->vert(i, 0);
 		vec4 vert_2 = model->vert(i, 1);
 		vec4 vert_3 = model->vert(i, 2);
-		auto x1 = (vert_1.x + 1) * width / 2;
-		auto y1 = (vert_1.y + 1) * height / 2;
-		auto x2 = (vert_2.x + 1) * width / 2;
-		auto y2 = (vert_2.y + 1) * height / 2;
-		auto x3 = (vert_3.x + 1) * width / 2;
-		auto y3 = (vert_3.y + 1) * height / 2;
-
-		triangle(x1, y1, x2, y2, x3, y3 ,framebuffer_model, { static_cast<unsigned char>(rand() % 255),static_cast<unsigned char>(rand() % 255), static_cast<unsigned char>(rand() % 255), static_cast<unsigned char>(rand() % 255) });
-	}
+		auto [x1,y1,z1] = (vert_1.x + 1) * width / 2, (vert_1.x + 1)* width / 2,(vert_1.x + 1) * width / 2;
+		
+		triangle(x1, y1, x2, y2, x3, y3, framebuffer_model, { static_cast < unsigned char>(255),static_cast < unsigned char>(255),static_cast < unsigned char>(255),static_cast <unsigned char>(255)});
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double, std::milli> elapsed = end - currrent;
 	std::cout << elapsed<< std::endl;
