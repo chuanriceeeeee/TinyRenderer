@@ -431,6 +431,12 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+# ========================
+# 我的 3D 模型例外规则
+# ========================
+# 忽略所有的 .obj 编译垃圾，但是保留 obj 文件夹下的 3D 模型！
+!obj/*.obj
+
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
