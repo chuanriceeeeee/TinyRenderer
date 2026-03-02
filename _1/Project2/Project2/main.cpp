@@ -104,9 +104,8 @@ void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, in
 	int boxmin_x = std::min(std::min(xa, xb), xc);
 	int boxmin_y = std::min(std::min(ya, yb), yc);
 	double total_area = triangle_area(xa, ya, xb, yb, xc, yc);
-	if (total_area < 0 ) 
+	if (total_area < 1 ) 
 		return;
-
 #pragma omp parallel for
 	for (int x = boxmin_x; x <= boxmax_x; x++)
 	{
@@ -121,7 +120,7 @@ void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, in
 			z_double = std::clamp(z_double, 0.0, 255.0);
 
 			unsigned char z =static_cast<unsigned char>(z_double);
-			framebuffer.set(x, y, {z,z,z,z});
+			framebuffer.set(x, y, { static_cast<unsigned char>(z,z,255,255) });
 		}
 	}
 }
@@ -152,13 +151,21 @@ int main(int argc, char** argv) {
 		auto [x2, y2, z2, temp2] = project(vert_2);
 		auto [x3, y3, z3, temp3] = project(vert_3);
 
-
-
 		triangle(x1, y1, z1, x2, y2, z2, x3, y3, z3, framebuffer_model, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255) });
 	}
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double, std::milli> elapsed = end - currrent;
 	std::cout << elapsed<< std::endl;
-	framebuffer_model.write_tga_file("framebuffer_model.tga");
+	//framebuffer_model.write_tga_file("framebuffer_model.tga");
+
+	TGAImage framebuffer_homework(60, 60, TGAImage::RGBA);
+	int x1 = 20, y1 = 25, z1 = 13;
+	int x2 = 40, y2 = 50, z2 = 160;
+	int x3 = 10, y3 = 55, z3 = 180;
+	triangle(x1, y1, z1, x2, y2, z2, x3, y3, z3, framebuffer_homework, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255) });
+	framebuffer_homework.write_tga_file("framebuffer_homework.tga");
+
+
+
 	return 0;
 }
