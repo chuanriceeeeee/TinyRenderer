@@ -1,0 +1,29 @@
+# reload copy
+```c++
+class Vec3f {
+public:
+    float x, y, z;
+
+    // 默认构造
+    Vec3f(float _x = 0, float _y = 0, float _z = 0) : x(_x), y(_y), z(_z) {}
+
+    // 【核心】重载赋值运算符
+    Vec3f& operator=(const Vec3f& rhs) {
+        // 1. 证同测试（防自赋值陷阱）
+        if (this == &rhs) {
+            return *this; 
+        }
+
+        // 2. 真正的数据拷贝
+        this->x = rhs.x;
+        this->y = rhs.y;
+        this->z = rhs.z;
+
+        // 3. 返回自身的引用，支持连续赋值
+        return *this; 
+    }
+};
+```
+
+- 返回必须是Vec3f **&**
+  - 保证连续赋值成功
