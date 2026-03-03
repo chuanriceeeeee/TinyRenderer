@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Project3_hidden_faces_romoval/Project3_hidden_faces_romoval.vcxproj" />
+</Solution>

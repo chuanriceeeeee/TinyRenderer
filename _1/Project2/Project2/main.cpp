@@ -97,6 +97,8 @@ float triangle_area(int xa, int  ya, int xb, int yb, int xc, int yc)
 	return .5 * ((yb - ya) * (xb + xa) + (ya - yc) * (xa + xc) + (yc - yb) * (xc + xb));
 }
 
+
+//final version
 void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, int zc, TGAImage& framebuffer, TGAColor color)
 {
 	int boxmax_x = std::max(std::max(xa, xb), xc);
@@ -107,9 +109,9 @@ void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, in
 	int boxmin_z = std::min(std::min(za, zb), zc);
 
 	double total_area = triangle_area(xa, ya, xb, yb, xc, yc);
-	if (total_area < 1 ) 
+	if (total_area < 0.5 ) 
 		return;
-#pragma omp parallel for
+//#pragma omp parallel for
 	for (int x = boxmin_x; x <= boxmax_x; x++)
   	{
 		for (int y = boxmin_y; y <= boxmax_y; y++)
@@ -119,19 +121,21 @@ void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, in
 			double gamma= triangle_area(xc, yc, xa, ya, x, y) / total_area;
 			if (alpha < 0 || beta < 0 || gamma < 0) 
 				continue;
-			double z_double = alpha * za + beta * zb + gamma * zc;
-			z_double = std::clamp(z_double, 0.0, 255.0);
-
-			unsigned char z =static_cast<unsigned char>(z_double);
-			double t_x = (x - boxmin_x) / static_cast<float>(boxmax_x - boxmin_x);
-			unsigned char x_color = static_cast<unsigned char>(t_x * 255);
-			double t_y = (y - boxmin_y) / static_cast<float>(boxmax_y - boxmin_y);
-			unsigned char y_color = static_cast<unsigned char>(t_y * 255);
-
-			framebuffer.set(x, y, { x_color,y_color,z,z });
+			
+			if (alpha < 0.1 || beta < 0.1 || gamma < 0.1)
+			{
+				double z_double = za * alpha + zb * beta + zc * gamma;
+				double b = gamma * 255.0;
+				double g = beta * 255.0;
+				double r = alpha * 255.0;
+				color = { static_cast<unsigned char>(b),static_cast<unsigned char>(g),static_cast<unsigned char>(r),255 };
+				framebuffer.set(x, y, color);
+			}
 		}
 	}
 }
+
+
 vec4 project(vec4 vert) 
 {
 	return vec4(
@@ -168,7 +172,7 @@ int main(int argc, char** argv) {
 
 	TGAImage framebuffer_homework(width, height, TGAImage::RGBA);
 	int x1 = 300, y1 = 350, z1 = 13;
-	int x2 = 500, y2 = 600, z2 = 160;
+	int x2 = 500, y2 = 600, z2 = 128;
 	int x3 = 200, y3 = 650, z3 = 255;
 	triangle(x1, y1, z1, x2, y2, z2, x3, y3, z3, framebuffer_homework, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255) });
 	framebuffer_homework.write_tga_file("framebuffer_homework.tga");
