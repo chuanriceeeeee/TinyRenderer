@@ -51,7 +51,7 @@ template<int n> std::ostream& operator<<(std::ostream& out, const vec<n>& v) {
 template<> struct vec<2> {
     double x = 0, y = 0;
     double& operator[](const int i)       { assert(i>=0 && i<2); return i ? y : x; }
-    double  operator[](const int i) const { assert(i>=0 && i<2); return i ? y : x; }
+    double  operator[](const int i) const { assert(i>=0 && i<2); return i ? y : x; } 
 };
 
 template<> struct vec<3> {

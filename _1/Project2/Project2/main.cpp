@@ -103,10 +103,10 @@ void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, in
 {
 	int boxmax_x = std::max(std::max(xa, xb), xc);
 	int boxmax_y = std::max(std::max(ya, yb), yc);
-	int boxmax_z = std::max(std::max(za, zb), zc);
+	//int boxmax_z = std::max(std::max(za, zb), zc);
 	int boxmin_x = std::min(std::min(xa, xb), xc);
 	int boxmin_y = std::min(std::min(ya, yb), yc);
-	int boxmin_z = std::min(std::min(za, zb), zc);
+	//int boxmin_z = std::min(std::min(za, zb), zc);
 
 	double total_area = triangle_area(xa, ya, xb, yb, xc, yc);
 	if (total_area < 0.5 ) 
@@ -128,7 +128,9 @@ void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, in
 				double b = gamma * 255.0;
 				double g = beta * 255.0;
 				double r = alpha * 255.0;
+				unsigned char z = static_cast<unsigned char>(z_double);
 				color = { static_cast<unsigned char>(b),static_cast<unsigned char>(g),static_cast<unsigned char>(r),255 };
+				if (z <= framebuffer.get(x, y)[0]) continue;
 				framebuffer.set(x, y, color);
 			}
 		}
@@ -146,7 +148,7 @@ vec4 project(vec4 vert)
 	);
 }
 int main(int argc, char** argv) {
-	TGAImage framebuffer_model(width, height, TGAImage::RGBA);
+	TGAImage framebuffer_model(width, height, TGAImage::GRAYSCALE);
 	/*TGAImage framebuffer(width, height, TGAImage::RGB);
 	triangle(7, 45, 35, 100, 45, 60, framebuffer, red);
 	triangle(120, 35, 90, 5, 45, 110, framebuffer, white);
@@ -156,12 +158,9 @@ int main(int argc, char** argv) {
 	auto currrent = std::chrono::steady_clock::now();
 	for (int i = 0; i < model->nfaces(); i++)
 	{
-		vec4 vert_1 = model->vert(i, 0);
-		vec4 vert_2 = model->vert(i, 1);
-		vec4 vert_3 = model->vert(i, 2);
-		auto [x1, y1, z1, temp1] = project(vert_1);
-		auto [x2, y2, z2, temp2] = project(vert_2);
-		auto [x3, y3, z3, temp3] = project(vert_3);
+		auto [x1, y1, z1, temp1] = project(model->vert(i, 0));
+		auto [x2, y2, z2, temp2] = project(model->vert(i, 1));
+		auto [x3, y3, z3, temp3] = project(model->vert(i, 2));
 
 		triangle(x1, y1, z1, x2, y2, z2, x3, y3, z3, framebuffer_model, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255) });
 	}

@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Project3_hidden_faces_romoval/Project3_hidden_faces_romoval.vcxproj" />
+  <Project Path="Project3_hidden_faces_romoval/Project3_hidden_faces_romoval.vcxproj" Id="e6cc1bad-cdec-4a58-aa86-26d3015eb3e4" />
 </Solution>

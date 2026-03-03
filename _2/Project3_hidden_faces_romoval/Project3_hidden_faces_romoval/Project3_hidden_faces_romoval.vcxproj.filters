@@ -35,5 +35,8 @@
     <ClInclude Include="tgaimage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="my_geometry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
