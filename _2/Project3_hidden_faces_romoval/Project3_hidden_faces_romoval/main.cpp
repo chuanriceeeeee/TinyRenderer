@@ -1,9 +1,12 @@
+#define _USE_MATH_DEFINES
+
 #include "tgaimage.h"
 #include <iostream>
 #include <chrono>
 #include "model.h"
 #include "geometry.h"
 #include <algorithm>
+#include <cmath>
 
 constexpr TGAColor white = { 255, 255, 255, 255 }; // attention, BGRA order
 constexpr TGAColor green = { 0, 255,   0, 255 };
@@ -13,6 +16,7 @@ constexpr TGAColor yellow = { 0, 200, 255, 255 };
 
 constexpr int width = 800;
 constexpr int height = 800;
+
 
 void line(int xa, int ya, int xb, int yb, TGAImage& framebuffer, TGAColor color)
 {
@@ -147,6 +151,24 @@ vec4 project(vec4 vert)
 		0
 	);
 }
+vec4 perspective(vec4 vert)
+{
+	constexpr double t = 10.0 ;
+	return vert / ( 1.0 - vert.z / t);
+}
+
+vec4 rot_y(vec4 vert)
+{
+	constexpr double ang = 45.0 * M_PI / 180.0;
+
+	mat<4, 4> R = {{
+		{std::cos(ang), 0, std::sin(ang), 0 }, 
+		{0, 1, 0, 0 }, 
+		{ -(std::sin(ang)), 0, std::cos(ang), 0 }, 
+		{ 0, 0, 0, 1 }
+		}};
+	return R * vert;
+}
 int main(int argc, char** argv) {
 	TGAImage framebuffer_model(width, height, TGAImage::GRAYSCALE);
 	/*TGAImage framebuffer(width, height, TGAImage::RGB);
@@ -158,9 +180,9 @@ int main(int argc, char** argv) {
 	auto currrent = std::chrono::steady_clock::now();
 	for (int i = 0; i < model->nfaces(); i++)
 	{
-		auto [x1, y1, z1, temp1] = project(model->vert(i, 0));
-		auto [x2, y2, z2, temp2] = project(model->vert(i, 1));
-		auto [x3, y3, z3, temp3] = project(model->vert(i, 2));
+		auto [x1, y1, z1, temp1] = project(perspective(rot_y(model->vert(i, 0))));
+		auto [x2, y2, z2, temp2] = project(perspective(rot_y(model->vert(i, 1))));
+		auto [x3, y3, z3, temp3] = project(perspective(rot_y(model->vert(i, 2))));
 
 		triangle(x1, y1, z1, x2, y2, z2, x3, y3, z3, framebuffer_model, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255) });
 	}
@@ -175,8 +197,6 @@ int main(int argc, char** argv) {
 	int x3 = 200, y3 = 650, z3 = 255;
 	triangle(x1, y1, z1, x2, y2, z2, x3, y3, z3, framebuffer_homework, { static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255),static_cast <unsigned char>(255) });
 	framebuffer_homework.write_tga_file("framebuffer_homework.tga");
-
-
 
 	return 0;
 }
