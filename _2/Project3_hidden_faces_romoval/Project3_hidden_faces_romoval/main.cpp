@@ -134,7 +134,7 @@ void triangle(int xa, int ya, int za, int xb, int yb, int zb, int xc, int yc, in
 				double r = alpha * 255.0;
 				unsigned char z = static_cast<unsigned char>(z_double);
 				color = { static_cast<unsigned char>(b),static_cast<unsigned char>(g),static_cast<unsigned char>(r),255 };
-				if (z <= framebuffer.get(x, y)[0]) continue;
+				if (z <= framebuffer.get(x, y)[0]) continue; //记录(x,y)像素点上的最大深度
 				framebuffer.set(x, y, { z });
 			}
 		}
@@ -153,7 +153,7 @@ vec4 project(vec4 vert)
 }
 vec4 perspective(vec4 vert)
 {
-	constexpr double t = 10.0 ;
+	constexpr double t = 3.0 ;
 	return vert / ( 1.0 - vert.z / t);
 }
 
@@ -169,6 +169,8 @@ vec4 rot_y(vec4 vert)
 		}};
 	return R * vert;
 }
+
+
 int main(int argc, char** argv) {
 	TGAImage framebuffer_model(width, height, TGAImage::GRAYSCALE);
 	/*TGAImage framebuffer(width, height, TGAImage::RGB);
