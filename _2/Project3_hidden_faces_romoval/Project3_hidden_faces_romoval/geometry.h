@@ -75,6 +75,10 @@ template<> struct vec<3> {
     {
         return { y * v.z - v.y - z, x * v.z - v.x * z, x * v.y - v.x * x };
     }
+    vec<3> operator= (const vec<4> v)
+    {
+        return { v.x,v.y,v.z };
+    }
 };
 
 template<> struct vec<4> {
@@ -104,6 +108,7 @@ template<> struct vec<4> {
     {
         return { t * x, t * y, t * z, t * w };
     }
+
     vec<4> transposition()
     {
 
@@ -111,6 +116,11 @@ template<> struct vec<4> {
     vec<4> inversion()
     {
 
+    }
+
+    operator vec<3>() const
+    {
+        return { x,y,z };
     }
 };
 
