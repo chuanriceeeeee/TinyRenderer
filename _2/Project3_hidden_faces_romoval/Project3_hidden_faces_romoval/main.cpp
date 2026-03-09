@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 /*constexpr mat<4, 4> project_matrix = { {	{width / 2.0, 0, 0, width / 2.0},
 		{0, height / 2.0, 0, height / 2.0},
 		{0, 0, 255. / 2.0, 255. / 2.0},
@@ -61,7 +62,6 @@ vec4 view_point(const vec4 vert)
 //	return rotate_matrix * vert;
 //}
 //
-#define _USE_MATH_DEFINES
 
 #include "tgaimage.h"
 #include <iostream>
@@ -89,7 +89,7 @@ void view(const vec3 eye, const vec3 center, const vec3 up) {
 	vec3 l = normalized(cross(up, n));
 	vec3 m = normalized(cross(n, l));
 	View = mat<4, 4>{ {{l.x,l.y,l.z,0}, {m.x,m.y,m.z,0}, {n.x,n.y,n.z,0}, {0,0,0,1}} } *
-		mat<4, 4>{{{1, 0, 0, -eye.x}, { 0,1,0,-eye.y }, { 0,0,1,-eye.z }, { 0,0,0,1 }}};
+		mat<4, 4>{{{1, 0, 0, -center.x}, { 0,1,0,-center.y }, { 0,0,1,-center.z }, { 0,0,0,1 }}};
 }
 
 void perspective(const double f) {
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
 
 	Model* model = new Model("./models/diablo3_pose.obj");
 	auto currrent = std::chrono::steady_clock::now();
-	constexpr vec3    eye{ -1,0,2 }; // camera position
+	constexpr vec3    eye{ 0,0,3}; // camera position
 	constexpr vec3 center{ 0,0,0 };  // camera direction
 	constexpr vec3     up{ 0,1,0 };  // camera up vector
 
