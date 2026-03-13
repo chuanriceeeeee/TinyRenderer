@@ -29,20 +29,29 @@ float triangle_area(int xa, int  ya, int xb, int yb, int xc, int yc)
 	return .5 * ((yb - ya) * (xb + xa) + (ya - yc) * (xa + xc) + (yc - yb) * (xc + xb));
 }
 
-void rasterize(const Triangle & clip, const IShader& shader, TGAImage& framebuffer )
+void rasterize(const Triangle& clip, const IShader& shader, TGAImage& framebuffer)
 {
 	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w };
-	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy()) };
+	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy() };
 
 	mat<3, 3> ABC = { {
 		{screen[0].x,screen[0].y,1},
 		{screen[1].x,screen[1].y,1},
 		{screen[2].x,screen[2].y,1},
 		} };
-	if (ABC.det() < 1) return;
+	if (ABC.det() < 1) return; // 矩阵行列式
+
+	auto [bbminx, bbmaxx] = std::minmax({ screen[0].x , screen[1].x, screen[2].x});
+	auto [bbminy, bbmaxy] = std::minmax({ screen[0].y , screen[1].y, screen[2].y });
+#pragma omp parallel for
+	for (int x = std::max<int>(bbminx, 0); x <= std::min<int>(bbmaxx, framebuffer.width() - 1);x++)
+		for (int y = std::max<int>(bbminy, 0); x <= std::min<int>(bbmaxy, framebuffer.height() - 1); y++)
+		{
+			vec3 bc = ABC.invert_transpose() * vec3 { static_cast<double>(x), static_cast<double>(y), 1. };
 
 
-	
+		}
+
 
 	//int boxmin_x = clip[0].x;
 	//for (int i = 1; i < 3; i++)
