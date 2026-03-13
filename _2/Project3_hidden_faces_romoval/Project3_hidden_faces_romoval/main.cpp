@@ -163,8 +163,12 @@ int main(int argc, char** argv) {
 	TGAImage framebuffer_model(width, height, TGAImage::GRAYSCALE);
 
 	Model* model = new Model("./models/diablo3_pose.obj");
+	
+	TGAImage diffuse_map = model->diffuse();
+	TGAImage specular_map = model->specular();
+
 	auto currrent = std::chrono::steady_clock::now();
-	constexpr vec3    eye{ 0,0,3}; // camera position
+	constexpr vec3    eye{ 0,0,3 };  // camera position
 	constexpr vec3 center{ 0,0,0 };  // camera direction
 	constexpr vec3     up{ 0,1,0 };  // camera up vector
 
