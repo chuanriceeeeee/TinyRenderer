@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -24,6 +24,7 @@
     <ProjectGuid>{89df95ec-dcb7-40b8-b67d-16788064980b}</ProjectGuid>
     <RootNamespace>Project3</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Project4</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -129,12 +130,13 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="model.cpp" />
+    <ClCompile Include="our_gl.cpp" />
     <ClCompile Include="tgaimage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="geometry.h" />
     <ClInclude Include="model.h" />
-    <ClInclude Include="ourgl.h" />
+    <ClInclude Include="our_gl.h" />
     <ClInclude Include="tgaimage.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

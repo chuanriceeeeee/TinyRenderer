@@ -24,6 +24,9 @@
     <ClCompile Include="tgaimage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="our_gl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="geometry.h">
@@ -35,7 +38,7 @@
     <ClInclude Include="tgaimage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ourgl.h">
+    <ClInclude Include="our_gl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
