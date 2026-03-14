@@ -29,7 +29,7 @@ float triangle_area(int xa, int  ya, int xb, int yb, int xc, int yc)
 	return .5 * ((yb - ya) * (xb + xa) + (ya - yc) * (xa + xc) + (yc - yb) * (xc + xb));
 }
 
-void rasterize(const Triangle& clip, const IShader& shader, TGAImage& framebuffer)
+void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer)
 {
 	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w };
 	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy() };
@@ -41,17 +41,27 @@ void rasterize(const Triangle& clip, const IShader& shader, TGAImage& framebuffe
 		} };
 	if (ABC.det() < 1) return; // 矩阵行列式
 
-	auto [bbminx, bbmaxx] = std::minmax({ screen[0].x , screen[1].x, screen[2].x});
+	auto [bbminx, bbmaxx] = std::minmax({ screen[0].x , screen[1].x, screen[2].x });
 	auto [bbminy, bbmaxy] = std::minmax({ screen[0].y , screen[1].y, screen[2].y });
 #pragma omp parallel for
-	for (int x = std::max<int>(bbminx, 0); x <= std::min<int>(bbmaxx, framebuffer.width() - 1);x++)
-		for (int y = std::max<int>(bbminy, 0); x <= std::min<int>(bbmaxy, framebuffer.height() - 1); y++)
+	for (int x = std::max<int>(bbminx, 0); x <= std::min<int>(bbmaxx, framebuffer.width() - 1); x++)
+		for (int y = std::max<int>(bbminy, 0); y <= std::min<int>(bbmaxy, framebuffer.height() - 1); y++)
 		{
 			vec3 bc = ABC.invert_transpose() * vec3 { static_cast<double>(x), static_cast<double>(y), 1. };
-
+			if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+			{
+				continue;//negative barycentric coordinate
+			}
+			double z = bc * vec3{ ndc[0].z,ndc[1].z,ndc[2].z };
+			if (z <= zbuffer[x + y * framebuffer.width()])
+				continue;
+			auto [discard, color] = shader.fragment(bc);
+			if (discard)
+				continue;
+			zbuffer[x + y * framebuffer.width()] = z;
+			framebuffer.set(x, y, color);
 
 		}
-
 
 	//int boxmin_x = clip[0].x;
 	//for (int i = 1; i < 3; i++)
