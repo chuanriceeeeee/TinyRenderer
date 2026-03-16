@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Project5_texture/Project5_texture.vcxproj" Id="36e16514-2161-4cb5-85fc-f6482d8d8eff" />
+</Solution>
