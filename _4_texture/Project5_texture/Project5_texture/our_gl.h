@@ -10,9 +10,10 @@ void init_zbuffer(const int width, const int height);
 
 
 struct IShader {
-    virtual std::pair<bool, TGAColor> fragment(const vec3 bar, const vec3 n) const = 0;
+    vec3 varying_tri[3];
+    virtual std::pair<bool, TGAColor> fragment(const vec3 bar,const vec3,const vec3) const = 0;
 };
 
 typedef vec4 Triangle[3]; // a triangle primitive is made of three ordered points
 
-void rasterize(const vec4 (&vert_array)[], const vec4 (&normal_array)[],const IShader& shader, TGAImage& framebuffer);
+void rasterize(const vec4 (&vert_array)[], const vec3 (&normal_array)[],const IShader& shader, TGAImage& framebuffer,const vec3 eye);

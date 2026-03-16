@@ -29,11 +29,10 @@ float triangle_area(int xa, int  ya, int xb, int yb, int xc, int yc)
 	return .5 * ((yb - ya) * (xb + xa) + (ya - yc) * (xa + xc) + (yc - yb) * (xc + xb));
 }
 
-void rasterize(const vec4(&clip)[], const vec4(&normal)[], const IShader& shader, TGAImage& framebuffer)
+void rasterize(const vec4(&clip)[], const vec3(&norm)[], const IShader& shader, TGAImage& framebuffer,const vec3 eye)
 {
-	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w };
+	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w }; // 此处是经过透视投影后的位置而非真实3D物理位置
 	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy() };
-	vec4 norm[3] = { normal[0] / normal[0].w, normal[1] / normal[1].w , normal[2] / normal[2].w };
 	mat<3, 3> ABC = { {
 		{screen[0].x,screen[0].y,1},
 		{screen[1].x,screen[1].y,1},
@@ -53,10 +52,11 @@ void rasterize(const vec4(&clip)[], const vec4(&normal)[], const IShader& shader
 				continue;//negative barycentric coordinate
 			}
 			double z = bc * vec3{ ndc[0].z,ndc[1].z,ndc[2].z };
-			vec3 normal_direction = bc.x * norm[1] + bc.y * norm[2] + bc.z * norm[3];
+			vec3 normal_direction = normalized(bc.x * norm[0] + bc.y * norm[1]  + bc.z * norm[2] );
 			if (z <= zbuffer[x + y * framebuffer.width()])
 				continue; 
-			auto [discard, color] = shader.fragment(bc,normal_direction);
+			vec3 frag_pos = bc.x * shader.varying_tri[0] + bc.y * shader.varying_tri[1] + bc.z * shader.varying_tri[2];
+			auto [discard, color] = shader.fragment(bc,normal_direction,frag_pos);
 			if (discard)
 				continue;
 			zbuffer[x + y * framebuffer.width()] = z;
