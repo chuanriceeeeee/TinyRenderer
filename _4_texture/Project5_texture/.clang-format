@@ -1,0 +1,30 @@
+---
+Language: Cpp
+# 基础风格选择，LLVM 是比较常用的标准
+BasedOnStyle: LLVM
+
+# 1. 核心需求：对齐尾随注释
+# 自动将不同行、不同位置的 "//" 注释推到同一列对齐
+AlignTrailingComments: true
+
+# 2. 进阶对齐：连续的变量声明对齐
+# 例如把不同长度的类型名称后的变量名对齐到同一列
+AlignConsecutiveDeclarations: true
+
+# 3. 进阶对齐：连续的赋值符号对齐
+# 让多行赋值语句的 "=" 保持在同一竖线上
+AlignConsecutiveAssignments: true
+
+# 4. 进阶对齐：宏定义对齐
+# 将多行 #define 的值对齐
+AlignConsecutiveMacros: true
+
+# 5. 指针和引用的位置 (靠近变量名)
+# 例如：int *a; 而不是 int* a;
+PointerAlignment: Right
+
+# 6. 缩进宽度设为 4 个空格 (符合大多数 Windows 习惯)
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+---
