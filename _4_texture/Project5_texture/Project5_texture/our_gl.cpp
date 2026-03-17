@@ -29,7 +29,7 @@ float triangle_area(int xa, int  ya, int xb, int yb, int xc, int yc)
 	return .5 * ((yb - ya) * (xb + xa) + (ya - yc) * (xa + xc) + (yc - yb) * (xc + xb));
 }
 
-void rasterize(const vec4(&clip)[], const vec3(&norm)[], const IShader& shader, TGAImage& framebuffer,const vec3 eye)
+void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer)
 {
 	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w }; // 此处是经过透视投影后的位置而非真实3D物理位置
 	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy() };
@@ -39,7 +39,7 @@ void rasterize(const vec4(&clip)[], const vec3(&norm)[], const IShader& shader, 
 		{screen[2].x,screen[2].y,1},
 		} };
 	if (ABC.det() < 1) return; // 矩阵行列式
-	
+
 	auto [bbminx, bbmaxx] = std::minmax({ screen[0].x , screen[1].x, screen[2].x });
 	auto [bbminy, bbmaxy] = std::minmax({ screen[0].y , screen[1].y, screen[2].y });
 #pragma omp parallel for
@@ -52,18 +52,16 @@ void rasterize(const vec4(&clip)[], const vec3(&norm)[], const IShader& shader, 
 				continue;//negative barycentric coordinate
 			}
 			double z = bc * vec3{ ndc[0].z,ndc[1].z,ndc[2].z };
-			vec3 normal_direction = normalized(bc.x * norm[0] + bc.y * norm[1]  + bc.z * norm[2] );
 			if (z <= zbuffer[x + y * framebuffer.width()])
-				continue; 
-			vec3 frag_pos = bc.x * shader.varying_tri[0] + bc.y * shader.varying_tri[1] + bc.z * shader.varying_tri[2];
-			auto [discard, color] = shader.fragment(bc,normal_direction,frag_pos);
+				continue;
+			auto [discard, color] = shader.fragment(bc);
 			if (discard)
 				continue;
 			zbuffer[x + y * framebuffer.width()] = z;
 			framebuffer.set(x, y, color);
 
 		}
-
+}
 	//int boxmin_x = clip[0].x;
 	//for (int i = 1; i < 3; i++)
 	//	boxmin_x = std::min(boxmin_x, static_cast<int>(clip[i].x));
@@ -111,4 +109,4 @@ void rasterize(const vec4(&clip)[], const vec3(&norm)[], const IShader& shader, 
 	//		}
 	//	}
 	//}
-}
+	//}
