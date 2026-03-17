@@ -12,11 +12,11 @@ void init_modelview(const vec3 eye, const vec3 center, const vec3 up) {
 }
 
 void init_perspective(const double f) {
-	Perspective = { {{1,0,0,0}, {0,1,0,0}, {0,0,1,0}, {0,0, -1 / f,1}} };
+	Perspective = { {{1,0,0,0}, {0,1,0,0}, {0,0,1,0}, {0,0, -1. / f,1}} };
 }
 
 void init_viewport(const int x, const int y, const int w, const int h) {
-	Viewport = { {{w / 2., 0, 0, x + w / 2.}, {0, h / 2., 0, y + h / 2.}, {0,0,255. / 2.0 , 255. / 2.0}, {0,0,0,1}} };
+	Viewport = { {{w / 2., 0, 0, x + w / 2.}, {0, h / 2., 0, y + h / 2.}, {0,0,1 ,0}, {0,0,0,1}} };
 }
 
 void init_zbuffer(const int width, const int height)
@@ -44,6 +44,7 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 	auto [bbminy, bbmaxy] = std::minmax({ screen[0].y , screen[1].y, screen[2].y });
 #pragma omp parallel for
 	for (int x = std::max<int>(bbminx, 0); x <= std::min<int>(bbmaxx, framebuffer.width() - 1); x++)
+	{
 		for (int y = std::max<int>(bbminy, 0); y <= std::min<int>(bbmaxy, framebuffer.height() - 1); y++)
 		{
 			vec3 bc = ABC.invert_transpose() * vec3 { static_cast<double>(x), static_cast<double>(y), 1. };
@@ -61,6 +62,7 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 			framebuffer.set(x, y, color);
 
 		}
+	}
 }
 	//int boxmin_x = clip[0].x;
 	//for (int i = 1; i < 3; i++)
