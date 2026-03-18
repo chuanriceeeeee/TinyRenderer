@@ -97,6 +97,8 @@ struct  BlingPhongShader : IShader // Inheritate
 	//		gl_FragColor[channel] *= final_light; // .4 .9 即为漫反射系数 高光反射系数 
 	//	return { false, gl_FragColor };
 	//}
+
+
 	virtual std::pair<bool, TGAColor> fragment(const vec3 bar) const
 	{
 		TGAColor gl_FragColor{ 255, 255, 255, 255 };
@@ -106,13 +108,13 @@ struct  BlingPhongShader : IShader // Inheritate
 		vec2 frag_uv = uv[0] * bar.x + uv[1] * bar.y + uv[2] * bar.z;
 
 		// 2. 插值法线并归一化
-		vec3 n = normalized(bar.x * norm[0] + bar.y * norm[1] + bar.z * norm[2]);
+		vec3 n = normalized(ModelView.invert_transpose() * model.normal(frag_uv));
 
 		// 3. 计算视线向量 v (必须归一化！)
 		vec3 v = normalized(frag_pos * -1.);
 
 		// 4. 环境光 (Ambient)
-		double ambient = 0.3;
+		double ambient = 0.6;
 
 		// 5. 漫反射 (Diffuse) n +
 		double diff = std::max(0.0, n * l);
@@ -124,11 +126,14 @@ struct  BlingPhongShader : IShader // Inheritate
 			spec = std::pow(std::max(n * h, 0.0), 32); // Blinn-Phong 的指数通常比 Phong 大一倍，64 效果较好
 		}
 
-		// 7. 组合最终颜色
-		double final_light = std::min(1.0, ambient + 0.5 * diff + 0.8 * spec);
-
+		// 7. 纹理 diffusemap 
+		TGAColor basecolor = diffusemap.get(diffusemap.width() * frag_uv.x,diffusemap.height() * frag_uv.y);
+		// 8. 纹理 specularmap
+		TGAColor specular_value = specularmap.get(specularmap.width() * frag_uv.x, specularmap.height() * frag_uv.y);
+		// . 组合最终颜色
+		double final_light = ambient + diff + spec ;
 		for (int channel : {0, 1, 2}) {
-			gl_FragColor[channel] = static_cast<unsigned char>(gl_FragColor[channel] * final_light);
+			gl_FragColor[channel] =basecolor[channel] * final_light;
 		}
 
 		return { false, gl_FragColor };
