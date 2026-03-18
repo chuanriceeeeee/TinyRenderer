@@ -114,7 +114,7 @@ struct  BlingPhongShader : IShader // Inheritate
 		// 4. 环境光 (Ambient)
 		double ambient = 0.3;
 
-		// 5. 漫反射 (Diffuse)
+		// 5. 漫反射 (Diffuse) n +
 		double diff = std::max(0.0, n * l);
 
 		// 6. 高光 (Specular) - 采用纯正的 Blinn-Phong
