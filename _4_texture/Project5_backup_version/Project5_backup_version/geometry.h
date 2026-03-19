@@ -96,32 +96,23 @@ template<> struct vec<4> {
     {
         return { v.x - x, v.y - y, v.z - z, 0 };
     }
-    double dot(const vec<4> v)
-    {
-        return v.x * x + v.y * y + v.z * z + v.w * w;
-    }
-    vec<4> operator* (const int t)
-    {
-        return { t * x, t * y, t * z, t * w };
-    }
-    vec<4> operator* (const double t)
-    {
-        return { t * x, t * y, t * z, t * w };
-    }
+    //double dot(const vec<4> v)
+    //{
+    //    return v.x * x + v.y * y + v.z * z + v.w * w;
+    //}
+    //vec<4> operator* (const int t)
+    //{
+    //    return { t * x, t * y, t * z, t * w };
+    //}
+    //vec<4> operator* (const double t)
+    //{
+    //    return { t * x, t * y, t * z, t * w };
+    //}
 
-    vec<4> transposition()
-    {
-
-    }
-    vec<4> inversion()
-    {
-
-    }
-
-    operator vec<3>() const
-    {
-        return { x,y,z };
-    }
+    //operator vec<3>() const
+    //{
+    //    return { x,y,z };
+    //}
 };
 
 typedef vec<2> vec2;

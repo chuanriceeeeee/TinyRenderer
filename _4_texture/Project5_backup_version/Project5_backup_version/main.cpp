@@ -13,7 +13,7 @@ struct BlingPhongShader : IShader // Inheritate
 	TGAColor color = { };
 	vec4 l;
 	vec3 tri[3];
-	vec3 norm[3];
+	vec4 norm[3];
 	vec2 uv[3];
 
 	TGAImage diffusemap;
@@ -27,17 +27,16 @@ struct BlingPhongShader : IShader // Inheritate
 
 	virtual vec4 vertex(const int face, const int vert)
 	{
-		vec3 v = model.vert(face, vert);
-		vec4 gl_Position = ModelView * vec4{ v.x, v.y, v.z, 1. };
-		tri[vert] = gl_Position.xyz();
+		//vec3 v = model.vert(face, vert);
+		//vec4 gl_Position = ModelView * vec4{ v.x, v.y, v.z, 1. };
+		//tri[vert] = gl_Position.xyz();
 
-		vec2 uv_value = model.uv(face, vert);
-		uv[vert] = uv_value;
-
-		vec4 n = model.normal(face, vert);
-		// invert_transpose 防止缩放导致变形
+		uv[vert] = model.uv(face, vert);
+		vec4 gl_Position = ModelView * model.vert(face, vert);
+		//// invert_transpose 防止缩放导致变形
+		vec4 n = model.normal(uv[vert]);
 		vec4 normal_direction = ModelView.invert_transpose() * vec4 { n.x, n.y, n.z, 0. };
-		norm[vert] = normal_direction.xyz();
+		norm[vert] = normal_direction;
 
 		diffusemap = model.diffuse();
 		specularmap = model.specular();
@@ -50,26 +49,26 @@ struct BlingPhongShader : IShader // Inheritate
 		TGAColor gl_FragColor{ 255, 255, 255, 255 };
 
 		// 1. bar
-		vec3 frag_pos = tri[0] * bar.x + tri[1] * bar.y + tri[2] * bar.z;
+		//vec3 frag_pos = tri[0] * bar.x + tri[1] * bar.y + tri[2] * bar.z;
 		vec2 frag_uv = uv[0] * bar.x + uv[1] * bar.y + uv[2] * bar.z;
 
 		// 2. norm
-		vec3 n = normalized(norm[0] * bar.x + norm[1] * bar.y + norm[2] * bar.z);
+		vec4 n = normalized(bar.x * norm[0] + bar.y * norm[1] + bar.z * norm[2]);
 
 		// 3. 计算视线向量 v
-		vec3 v = normalized(frag_pos * -1.);
-
+		//vec3 v = normalized(frag_pos * -1.);
+		vec4 r = normalized(n * (n * l) * 2 - l);
 		// 4. 环境光 (Ambient)
-		double ambient = 0.2; 
+		double ambient = 0.6; 
 
 		// 5. 漫反射 (Diffuse) 
-		double diff_intensity = std::max(0.0, n * l.xyz());
+		double diff_intensity = std::max(0.0, n * l);
 
 		// 6. 高光 (Specular)
 		double spec_intensity = 0.0;
 		if (diff_intensity > 0.0) {
-			vec3 h = normalized(l.xyz() + v);
-			spec_intensity = std::pow(std::max(n * h, 0.0), 32);
+			//vec3 h = normalized(l.xyz() + v);
+			spec_intensity = std::pow(std::max(r.z , 0.0), 32);
 		}
 
 		// 7. 读取纹理
@@ -80,7 +79,7 @@ struct BlingPhongShader : IShader // Inheritate
 		for (int channel : {0, 1, 2}) {
 			double final_light = ambient * basecolor[channel]
 				+ basecolor[channel] * diff_intensity
-				+ specular_value[0] * spec_intensity; // 此处依然有问题！specular always wrong...
+				+ 255. * .9 *  spec_intensity; // 此处依然有问题！specular always wrong...
 
 			gl_FragColor[channel] = std::min(255.0, std::max(0.0, final_light));
 		}
