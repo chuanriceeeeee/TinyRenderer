@@ -34,7 +34,8 @@ struct BlingPhongShader : IShader // Inheritate
 		uv[vert] = model.uv(face, vert);
 		vec4 gl_Position = ModelView * model.vert(face, vert);
 		//// invert_transpose 防止缩放导致变形
-		vec4 n = model.normal(uv[vert]);
+		vec4 n = model.normal(face,vert); // tangent normal
+
 		vec4 normal_direction = ModelView.invert_transpose() * vec4 { n.x, n.y, n.z, 0. };
 		norm[vert] = normal_direction;
 
