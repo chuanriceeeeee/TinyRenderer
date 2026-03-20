@@ -21,7 +21,7 @@ void init_viewport(const int x, const int y, const int w, const int h) {
 
 void init_zbuffer(const int width, const int height)
 {
-	zbuffer = std::vector(width * height, -1000.);
+	zbuffer = std::vector(width * height, -1000.); // 初始化zbuffer
 }
 
 float triangle_area(int xa, int  ya, int xb, int yb, int xc, int yc)
@@ -53,7 +53,7 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 				continue;//negative barycentric coordinate
 			}
 			double z = bc * vec3{ ndc[0].z,ndc[1].z,ndc[2].z };
-			if (z <= zbuffer[x + y * framebuffer.width()])
+			if (z <= zbuffer[x + y * framebuffer.width()]) // y * width escape rows
 				continue;
 			auto [discard, color] = shader.fragment(bc);
 			if (discard)
