@@ -3,14 +3,13 @@
 #include "model.h"
 #include <cmath>
 
-extern mat<4, 4> ModelView, Perspective; // "OpenGL" state matrices and
+extern mat<4, 4> ModelView, Perspective, ModelViewLight; // "OpenGL" state matrices and
 extern std::vector<double> zbuffer;     // the depth buffer
 
 
 struct BlingPhongShader : IShader // Inheritate
 {
 	const Model& model;
-	TGAColor color = { };
 	vec4 l;
 	vec3 tri[3];
 	vec4 norm[3];
@@ -43,9 +42,16 @@ struct BlingPhongShader : IShader // Inheritate
 		return Perspective * gl_Position;
 	}
 
+	virtual vec4 vertex_shadow(const int face, const int vert)
+	{
+
+		uv[vert] = model.uv(face, vert);
+		vec4 shadow_gl_Position = ModelViewLight * model.vert(face, vert);
+		return Perspective * shadow_gl_Position;
+	}
+
 	virtual std::pair<bool, TGAColor> fragment(const vec3 bar) const
 	{
-		TGAColor gl_FragColor{ 255, 255, 255, 255 };
 
 		// bar
 		//vec3 frag_pos = tri[0] * bar.x + tri[1] * bar.y + tri[2] * bar.z;
@@ -81,7 +87,7 @@ struct BlingPhongShader : IShader // Inheritate
 		//vec3 v = normalized(frag_pos * -1.);
 		vec4 r = normalized(n * (n * l) * 2 - l);
 		// 环境光 (Ambient)
-		double ambient = 0.2;
+		double ambient = 0.5;
 
 		// 漫反射 (Diffuse) 
 		double diff_intensity = std::max(0.0, n * l);
@@ -94,23 +100,34 @@ struct BlingPhongShader : IShader // Inheritate
 		}
 
 		// 读取纹理
-		TGAColor basecolor = diffusemap.get(diffusemap.width() * frag_uv.x, diffusemap.height() * frag_uv.y);
-		TGAColor specular_value = specularmap.get(specularmap.width() * frag_uv.x, specularmap.height() * frag_uv.y);
+		TGAColor diffusecolor = sample2d(diffusemap, frag_uv);
+		double specular_value = sample2d(specularmap,frag_uv)[0];
+
+		TGAColor gl_FragColor = sample2d(diffusemap, frag_uv);
 
 		// 组合最终颜色
 		for (int channel : {0, 1, 2}) {
-			double final_light = ambient * basecolor[channel]
-				+ basecolor[channel] * diff_intensity
-				+ specular_value[0] * spec_intensity; // 此处依然有问题！specular always wrong...
+			double final_light = ambient
+				+ diff_intensity
+				+ 3 * specular_value / 255. * spec_intensity; // 此处依然有问题！specular always wrong...
 
-			gl_FragColor[channel] = std::min(255.0, std::max(0.0, final_light));
+			gl_FragColor[channel] = std::min(255.0, std::max(0.0, gl_FragColor[channel] * final_light));
 		}
 		return { false, gl_FragColor };
+	}
+
+	virtual TGAColor shadow(const vec3 shadow_bar, const TGAColor re_color) const //一旦丢失这个const会与原虚函数声明完全不同!导致编译器认为未实现
+	{
+		TGAColor color = re_color;
+		for (int channel : {0, 1, 2}) {
+			color[channel] = std::min(255.0, std::max(0.0, color[channel] * .3));
+		}
+		return color;
 	}
 };
 
 int main(int argc, char** argv) {
-	if (argc < 2) {
+	if (argc < 1) {
 		std::cerr << "Usage: " << argv[0] << " model" << std::endl;
 		return 1;
 	}
@@ -120,8 +137,9 @@ int main(int argc, char** argv) {
 	constexpr vec3 center{ 0, 0, 0 }; // camera direction
 	constexpr vec3     up{ 0, 1, 0 }; // camera up vector
 	constexpr vec3  light{ 1, 1, 1 };
-
+		
 	init_modelview(eye, center, up);                             // build the ModelView   matrix
+	init_modelview_light(light, center, up);
 	init_perspective(norm(eye - center));                        // build the Perspective matrix
 	init_viewport(width / 16, height / 16, width * 7 / 8, height * 7 / 8); // build the Viewport    matrix
 	init_zbuffer(width, height);
@@ -131,12 +149,15 @@ int main(int argc, char** argv) {
 	for (int m = 1; m < argc; m++)
 	{
 		Model model(argv[m]);
-		BlingPhongShader shader(light, model, eye);
+		BlingPhongShader shader(-1 * light, model, eye);
 		for (int f = 0; f < model.nfaces(); f++) {      // iterate through all facets
 			Triangle clip = { shader.vertex(f, 0),  // assemble the primitive
 							  shader.vertex(f, 1),
 							  shader.vertex(f, 2) };
-			rasterize(clip, shader, framebuffer);   // rasterize the primitive
+			Triangle shadow_clip = { shader.vertex_shadow(f, 0),  // assemble the primitive
+							  shader.vertex_shadow(f, 1),
+							  shader.vertex_shadow(f, 2) };
+			rasterize(clip, shadow_clip, shader, framebuffer);   // rasterize the primitive
 		}
 	}
 	framebuffer.write_tga_file("framebuffer.tga");

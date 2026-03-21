@@ -1,13 +1,21 @@
 #include "our_gl.h"
 
-mat<4, 4> ModelView, Viewport, Perspective;
-std::vector<double> zbuffer;
+mat<4, 4> ModelView, Viewport, Perspective, ModelViewLight;
+std::vector<double> zbuffer, shadow_zbuffer;
 
 void init_modelview(const vec3 eye, const vec3 center, const vec3 up) {
 	vec3 n = normalized(eye - center);
 	vec3 l = normalized(cross(up, n));
 	vec3 m = normalized(cross(n, l));
 	ModelView = mat<4, 4>{ {{l.x,l.y,l.z,0}, {m.x,m.y,m.z,0}, {n.x,n.y,n.z,0}, {0,0,0,1}} } *
+		mat<4, 4>{{{1, 0, 0, -center.x}, { 0,1,0,-center.y }, { 0,0,1,-center.z }, { 0,0,0,1 }}};
+}
+
+void init_modelview_light(const vec3 light, const vec3 center, const vec3 up) {
+	vec3 n = normalized(light - center);
+	vec3 l = normalized(cross(up, n));
+	vec3 m = normalized(cross(n, l));
+	ModelViewLight = mat<4, 4>{ {{l.x,l.y,l.z,0}, {m.x,m.y,m.z,0}, {n.x,n.y,n.z,0}, {0,0,0,1}} } *
 		mat<4, 4>{{{1, 0, 0, -center.x}, { 0,1,0,-center.y }, { 0,0,1,-center.z }, { 0,0,0,1 }}};
 }
 
@@ -24,19 +32,36 @@ void init_zbuffer(const int width, const int height)
 	zbuffer = std::vector(width * height, -1000.);
 }
 
+void init_shadow_zbuffer(const int width, const int height)
+{
+	shadow_zbuffer = std::vector(width * height, -1000.);
+}
+
 float triangle_area(int xa, int  ya, int xb, int yb, int xc, int yc)
 {
 	return .5 * ((yb - ya) * (xb + xa) + (ya - yc) * (xa + xc) + (yc - yb) * (xc + xb));
 }
 
-void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer)
+TGAColor sample2d(const TGAImage & map, const vec2 & uv)
+{
+	return map.get(map.width() * uv[0], map.height() * uv[1]);
+}
+
+void rasterize(const vec4(&clip)[], const vec4(&shadow_clip)[], const IShader& shader, TGAImage& framebuffer)
 {
 	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w }; // 此处是经过透视投影后的位置而非真实3D物理位置
 	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy() };
+	vec4 shadow_ndc[3] = { shadow_clip[0] / shadow_clip[0].w, shadow_clip[1] / shadow_clip[1].w , shadow_clip[2] / shadow_clip[2].w };
+	vec2 light_screen[3] = {(Viewport * shadow_ndc[0]).xy(),(Viewport * shadow_ndc[1]).xy(),(Viewport * shadow_ndc[2]).xy()};
 	mat<3, 3> ABC = { {
 		{screen[0].x,screen[0].y,1},
 		{screen[1].x,screen[1].y,1},
 		{screen[2].x,screen[2].y,1},
+		} };
+	mat<3, 3> shadow_ABC = { {
+		{light_screen[0].x,light_screen[0].y,1},
+		{light_screen[1].x,light_screen[1].y,1},
+		{light_screen[2].x,light_screen[2].y,1},
 		} };
 	if (ABC.det() < 1) return; // 矩阵行列式
 
@@ -48,14 +73,21 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 		for (int y = std::max<int>(bbminy, 0); y <= std::min<int>(bbmaxy, framebuffer.height() - 1); y++)
 		{
 			vec3 bc = ABC.invert_transpose() * vec3 { static_cast<double>(x), static_cast<double>(y), 1. };
+			vec3 shadow_bc = shadow_ABC.invert_transpose() * vec3 { static_cast<double>(x), static_cast<double>(y), 1. };
 			if (bc.x < 0 || bc.y < 0 || bc.z < 0)
 			{
 				continue;//negative barycentric coordinate
 			}
 			double z = bc * vec3{ ndc[0].z,ndc[1].z,ndc[2].z };
+			double shadow_z = shadow_bc * vec3{ shadow_ndc[0].z, shadow_ndc[1].z, shadow_ndc[2].z };
 			if (z <= zbuffer[x + y * framebuffer.width()])
 				continue;
 			auto [discard, color] = shader.fragment(bc);
+			if (shadow_z >= shadow_zbuffer[x + y * framebuffer.width()]);
+			{ 
+				shadow_zbuffer[x + y * framebuffer.width()] = shadow_z; 
+				color = shader.shadow(shadow_bc, color);
+			}
 			if (discard)
 				continue;
 			zbuffer[x + y * framebuffer.width()] = z;
@@ -64,7 +96,7 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 		}
 	}
 }
-	//int boxmin_x = clip[0].x;
+	//int boxmin_x = shadow_clip[0].x;
 	//for (int i = 1; i < 3; i++)
 	//	boxmin_x = std::min(boxmin_x, static_cast<int>(clip[i].x));
 
