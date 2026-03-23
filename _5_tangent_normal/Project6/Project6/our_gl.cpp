@@ -67,27 +67,23 @@ void rasterize(const vec4(&clip)[], const vec4(&shadow_clip)[], const IShader& s
 
 	auto [bbminx, bbmaxx] = std::minmax({ screen[0].x , screen[1].x, screen[2].x });
 	auto [bbminy, bbmaxy] = std::minmax({ screen[0].y , screen[1].y, screen[2].y });
+
+	auto [shadow_bbminx, shadow_bbmaxx] = std::minmax({ light_screen[0].x , light_screen[1].x, light_screen[2].x });
+	auto [shadow_bbminy, shadow_bbmaxy] = std::minmax({ light_screen[0].y , light_screen[1].y, light_screen[2].y });
 #pragma omp parallel for
 	for (int x = std::max<int>(bbminx, 0); x <= std::min<int>(bbmaxx, framebuffer.width() - 1); x++)
 	{
 		for (int y = std::max<int>(bbminy, 0); y <= std::min<int>(bbmaxy, framebuffer.height() - 1); y++)
 		{
 			vec3 bc = ABC.invert_transpose() * vec3 { static_cast<double>(x), static_cast<double>(y), 1. };
-			vec3 shadow_bc = shadow_ABC.invert_transpose() * vec3 { static_cast<double>(x), static_cast<double>(y), 1. };
 			if (bc.x < 0 || bc.y < 0 || bc.z < 0)
 			{
 				continue;//negative barycentric coordinate
 			}
 			double z = bc * vec3{ ndc[0].z,ndc[1].z,ndc[2].z };
-			double shadow_z = shadow_bc * vec3{ shadow_ndc[0].z, shadow_ndc[1].z, shadow_ndc[2].z };
 			if (z <= zbuffer[x + y * framebuffer.width()])
 				continue;
 			auto [discard, color] = shader.fragment(bc);
-			if (shadow_z >= shadow_zbuffer[x + y * framebuffer.width()]);
-			{ 
-				shadow_zbuffer[x + y * framebuffer.width()] = shadow_z; 
-				color = shader.shadow(shadow_bc, color);
-			}
 			if (discard)
 				continue;
 			zbuffer[x + y * framebuffer.width()] = z;
@@ -95,6 +91,29 @@ void rasterize(const vec4(&clip)[], const vec4(&shadow_clip)[], const IShader& s
 
 		}
 	}
+#pragma omp parallel for
+	for (int x = std::max<int>(shadow_bbminx, 0); x <= std::min<int>(shadow_bbmaxx, framebuffer.width() - 1); x++)
+	{
+		for (int y = std::max<int>(shadow_bbminy, 0); y <= std::min<int>(shadow_bbmaxy, framebuffer.height() - 1); y++)
+		{
+			vec3 bc = ABC.invert_transpose() * vec3 { static_cast<double>(x), static_cast<double>(y), 1. };
+			if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+			{
+				continue;//negative barycentric coordinate
+			}
+			double z = bc * vec3{ ndc[0].z,ndc[1].z,ndc[2].z };
+			if (z <= zbuffer[x + y * framebuffer.width()])
+				continue;
+			auto [discard, color] = shader.fragment(bc);
+			if (discard)
+				continue;
+			zbuffer[x + y * framebuffer.width()] = z;
+			framebuffer.set(x, y, color);
+
+		}
+	}
+
+
 }
 	//int boxmin_x = shadow_clip[0].x;
 	//for (int i = 1; i < 3; i++)
