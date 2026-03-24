@@ -9,6 +9,9 @@ void init_modelview(const vec3 eye, const vec3 center, const vec3 up);
 void init_modelview_light(const vec3 light, const vec3 center, const vec3 up);
 void init_zbuffer(const int width, const int height);
 void init_shadow_zbuffer(const int width, const int height);
+void shadow(TGAImage& shadowmap, const vec4 (&clip)[]);
+
+
 struct IShader {
         //static TGAColor sample2D(const TGAImage& img, const vec2& uvf) {
         //    return img.get(uvf[0] * img.width(), uvf[1] * img.height());
@@ -21,4 +24,5 @@ typedef vec4 Triangle[3]; // a triangle primitive is made of three ordered point
 
 
 TGAColor sample2d(const TGAImage & map, const vec2& uv); 
-void rasterize(const vec4 (&vert_array)[], const vec4(&shadow_clip)[] , const IShader& shader, TGAImage& framebuffer);
+
+void rasterize(const vec4 (&clip)[], const IShader& shader, TGAImage& framebuffer);
