@@ -1,6 +1,6 @@
 #include "our_gl.h"
 
-mat<4, 4> ModelView, Viewport, Perspective, ModelViewLight;
+mat<4, 4> ModelView, Viewport, Perspective, ModelViewLight, N_M_minus;
 
 std::vector<double> zbuffer, shadow_zbuffer;
 
@@ -39,10 +39,46 @@ void init_shadow_zbuffer(const int width, const int height)
 	shadow_zbuffer = std::vector( width * height, -1000.);
 }
 
-void shadow(TGAImage& shadowmap, const vec4(&clip)[3])
+void init_n_m_minus()
 {
+	N_M_minus = Perspective * ModelViewLight * (Perspective * ModelView).invert();
+}
+
+void shadow(TGAImage& shadowmap, const vec4(&clip)[])
+{
+	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w, clip[2] / clip[2].w };
+	vec2 screen[3] = { (Viewport * ndc[0]).xy(), (Viewport * ndc[1]).xy(), (Viewport * ndc[2]).xy() };
 	
-#pragma omp parallel for
+	mat<3, 3> ABC = { {
+		{screen[0].x ,screen[0].y,1},
+		{screen[1].x ,screen[1].y,1},
+		{0,0,1}
+	} };
+	if (ABC.det() < 1) //占像素点过小的三角形
+	{
+		return;
+	}
+
+	auto [bbminx, bbmaxx] = std::minmax({ screen[0].x , screen[1].x, screen[2].x });
+	auto [bbminy, bbmaxy] = std::minmax({ screen[0].y , screen[1].y, screen[2].y });
+
+	for (int x = std::max<int>(bbminx, 0); x <= std::min<int>(bbmaxx, shadowmap.width() - 1); x++)
+	{
+		for (int y = std::max<int>(bbminy, 0); y <= std::min<int>(bbmaxy, shadowmap.height() - 1); y++)
+		{
+			//1. 计算重心坐标
+			vec3 bc = ABC.invert_transpose() * vec3 { x * 1., y * 1., 1};
+			if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+			{
+				continue;
+			}
+			double z = bc.x * ndc[0].z + bc.y * ndc[1].z + bc.z * ndc[2].z;
+			if (z > shadow_zbuffer[x + y * shadowmap.width()])
+			{
+				shadow_zbuffer[x + y * shadowmap.width()] = z;
+			}
+		}
+	}
 }
 
 
@@ -59,28 +95,30 @@ TGAColor sample2d(const TGAImage & map, const vec2 & uv)
 
 void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer)
 {
-	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w }; // 此处是经过透视投影后的位置而非真实3D物理位置
-	vec4 light_ndc[3] = { N_Mminus * ndc[0], N_Mminus * ndc[1], N_Mminus * ndc[2] };
-	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy() };
+	vec4 light_clip[3] = { N_M_minus * clip[0], N_M_minus * clip[1], N_M_minus * clip[2] }; 
+	vec4 light_ndc[3] = { light_clip[0] / light_clip[0].w, light_clip[1] / light_clip[1].w, light_clip[2] / light_clip[2].w };
 	vec2 light_screen[3] = { (Viewport * light_ndc[0]).xy(),(Viewport * light_ndc[1]).xy(),(Viewport * light_ndc[2]).xy() };
 
+	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w }; // 此处是经过透视投影后的位置而非真实3D物理位置
+	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy() };
 	mat<3, 3> ABC = { {
 		{screen[0].x,screen[0].y,1},
 		{screen[1].x,screen[1].y,1},
 		{screen[2].x,screen[2].y,1},
 		} };
+
 	mat<3, 3> light_ABC = { {
 	{light_screen[0].x,light_screen[0].y,1},
 	{light_screen[1].x,light_screen[1].y,1},
 	{light_screen[2].x,light_screen[2].y,1},
 	} };
 
-
-
 	if (ABC.det() < 1) return; // 矩阵行列式
 
 	auto [bbminx, bbmaxx] = std::minmax({ screen[0].x , screen[1].x, screen[2].x });
 	auto [bbminy, bbmaxy] = std::minmax({ screen[0].y , screen[1].y, screen[2].y });
+
+	mat<4, 4> uniform_M = Viewport * N_M_minus * Viewport.invert();
 
 #pragma omp parallel for
 	for (int x = std::max<int>(bbminx, 0); x <= std::min<int>(bbmaxx, framebuffer.width() - 1); x++)
@@ -100,13 +138,21 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 			if (discard)
 				continue;
 
-			double shadow_x = bc.x * light_screen[0].x + bc.y * light_screen[1].x + bc.z * light_screen[2].x;
-			double shadow_y = bc.x * light_screen[0].y + bc.y * light_screen[1].y + bc.z * light_screen[2].y;
-			//由转换后3d空间计算深度
-			double shadow_z = bc.x * light_ndc[0].z + bc.y * light_ndc[1].z + bc.z * light_ndc[2].z;
+			//double shadow_x = bc.x * light_screen[0].x + bc.y * light_screen[1].x + bc.z * light_screen[2].x;
+			//double shadow_y = bc.x * light_screen[0].y + bc.y * light_screen[1].y + bc.z * light_screen[2].y;
+			////由转换后3d空间计算深度
+			//double shadow_z = bc.x * light_ndc[0].z + bc.y * light_ndc[1].z + bc.z * light_ndc[2].z;
 
-			int sx = static_cast<int>(shadow_x);
-			int sy = static_cast<int>(shadow_y);
+			vec4 frag_position = vec4{ x * 1., y * 1., z  , 1 };
+			vec4 frag_shadow_pt = uniform_M * frag_position;
+			//coordinate
+			frag_shadow_pt = frag_shadow_pt / frag_shadow_pt.w;
+
+			int sx = static_cast<int>(frag_shadow_pt.x);
+			int sy = static_cast<int>(frag_shadow_pt.y);
+
+			double shadow_z = frag_shadow_pt.z;
+
 
 			if (sx >= 0 && sx < framebuffer.width() && sy >= 0 && sy < framebuffer.height())
 			{
@@ -117,11 +163,9 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 					// 点在阴影中
 					for (int c : {0, 1, 2}) color[c] *= 0.3;
 				}
-
-
-				zbuffer[x + y * framebuffer.width()] = z;
-				framebuffer.set(x, y, color);
 			}
+			zbuffer[x + y * framebuffer.width()] = z;
+			framebuffer.set(x, y, color);
 		}
 	}
 

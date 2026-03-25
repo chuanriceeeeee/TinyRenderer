@@ -3,7 +3,7 @@
 #include "model.h"
 #include <cmath>
 
-extern mat<4, 4> ModelView, Perspective, ModelViewLight; // "OpenGL" state matrices and
+extern mat<4, 4> ModelView, Perspective, ModelViewLight, N_M_minus; // "OpenGL" state matrices and
 extern std::vector<double> zbuffer;     // the depth buffer
 
 
@@ -235,11 +235,11 @@ struct ShadowShader : IShader // Inheritate
 
 		// 组合最终颜色
 		for (int channel : {0, 1, 2}) {
-			double final_light = ambient
-				+ diff_intensity
-				+ 3 * specular_value / 255. * spec_intensity; // 此处依然有问题！specular always wrong...
-
-			gl_FragColor[channel] = std::min(255.0, std::max(0.0, gl_FragColor[channel] * final_light));
+			double diffuse_color = (ambient * diffusecolor[channel]
+				+ diffusecolor[channel] * diff_intensity); // 此处依然有问题！specular always wrong...
+			double specular_color = 255. * (specular_value / 255.) * spec_intensity;
+			double final_color = diffuse_color + specular_color;
+			gl_FragColor[channel] = std::min(255.0, std::max(0.0, final_color));
 		}
 		return { false, gl_FragColor };
 	}
@@ -271,6 +271,8 @@ int main(int argc, char** argv) {
 	init_perspective(norm(eye - center));                        // build the Perspective matrix
 	init_viewport(width / 16, height / 16, width * 7 / 8, height * 7 / 8); // build the Viewport    matrix
 	init_zbuffer(width, height);
+	init_shadow_zbuffer(width, height);
+	init_n_m_minus();
 	TGAImage framebuffer(width, height, TGAImage::RGB);
 	TGAImage shadowmap(width, height, TGAImage::GRAYSCALE);
 
@@ -291,7 +293,7 @@ int main(int argc, char** argv) {
 	for (int m = 1; m < argc; m++)
 	{
 		Model model(argv[m]);
-		BlingPhongShader shader(-1 * light, model, eye);
+		ShadowShader shader(-1 * light, model, eye);
 
 		for (int f = 0; f < model.nfaces(); f++) {      // iterate through all facets
 			Triangle clip = { shader.vertex(f, 0),  // assemble the primitive

@@ -9,6 +9,7 @@ void init_modelview(const vec3 eye, const vec3 center, const vec3 up);
 void init_modelview_light(const vec3 light, const vec3 center, const vec3 up);
 void init_zbuffer(const int width, const int height);
 void init_shadow_zbuffer(const int width, const int height);
+void init_n_m_minus();
 void shadow(TGAImage& shadowmap, const vec4 (&clip)[]);
 
 

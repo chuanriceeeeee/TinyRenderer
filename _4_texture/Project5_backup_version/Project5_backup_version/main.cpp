@@ -78,11 +78,11 @@ struct BlingPhongShader : IShader // Inheritate
 
 		// 8. 组合最终颜色
 		for (int channel : {0, 1, 2}) {
-			double final_light = ambient * basecolor[channel]
-				+ basecolor[channel] * diff_intensity
-				+ 255. * .9 *  spec_intensity; // 此处依然有问题！specular always wrong...
-
-			gl_FragColor[channel] = std::min(255.0, std::max(0.0, final_light));
+			double diffuse_color = gl_FragColor[channel] * (ambient * basecolor[channel]
+				+ basecolor[channel] * diff_intensity); // 此处依然有问题！specular always wrong...
+			double specular_color = 255. * (specular_value[0] / 255.) * spec_intensity;
+			double final_color = diffuse_color + specular_color;
+			gl_FragColor[channel] = std::min(255.0, std::max(0.0, final_color));
 		}
 
 		return { false, gl_FragColor };
