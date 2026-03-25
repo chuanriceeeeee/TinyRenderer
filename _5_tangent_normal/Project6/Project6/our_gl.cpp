@@ -52,7 +52,7 @@ void shadow(TGAImage& shadowmap, const vec4(&clip)[])
 	mat<3, 3> ABC = { {
 		{screen[0].x ,screen[0].y,1},
 		{screen[1].x ,screen[1].y,1},
-		{0,0,1}
+		{screen[2].x ,screen[2].y,1},
 	} };
 	if (ABC.det() < 1) //占像素点过小的三角形
 	{
@@ -95,10 +95,6 @@ TGAColor sample2d(const TGAImage & map, const vec2 & uv)
 
 void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer)
 {
-	vec4 light_clip[3] = { N_M_minus * clip[0], N_M_minus * clip[1], N_M_minus * clip[2] }; 
-	vec4 light_ndc[3] = { light_clip[0] / light_clip[0].w, light_clip[1] / light_clip[1].w, light_clip[2] / light_clip[2].w };
-	vec2 light_screen[3] = { (Viewport * light_ndc[0]).xy(),(Viewport * light_ndc[1]).xy(),(Viewport * light_ndc[2]).xy() };
-
 	vec4 ndc[3] = { clip[0] / clip[0].w, clip[1] / clip[1].w , clip[2] / clip[2].w }; // 此处是经过透视投影后的位置而非真实3D物理位置
 	vec2 screen[3] = { (Viewport * ndc[0]).xy(),(Viewport * ndc[1]).xy(),(Viewport * ndc[2]).xy() };
 	mat<3, 3> ABC = { {
@@ -106,12 +102,6 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 		{screen[1].x,screen[1].y,1},
 		{screen[2].x,screen[2].y,1},
 		} };
-
-	mat<3, 3> light_ABC = { {
-	{light_screen[0].x,light_screen[0].y,1},
-	{light_screen[1].x,light_screen[1].y,1},
-	{light_screen[2].x,light_screen[2].y,1},
-	} };
 
 	if (ABC.det() < 1) return; // 矩阵行列式
 
@@ -156,7 +146,7 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 
 			if (sx >= 0 && sx < framebuffer.width() && sy >= 0 && sy < framebuffer.height())
 			{
-				// 4. 对比深度 (加一个极小的 bias 偏移量防止阴影粉刺)
+				// 对比深度 (加一个极小的 bias 偏移量防止阴影粉刺)
 				int shadow_idx = sx + sy * framebuffer.width();
 				if (shadow_z < shadow_zbuffer[shadow_idx] - 0.01)
 				{
