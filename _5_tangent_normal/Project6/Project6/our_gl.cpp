@@ -1,5 +1,6 @@
+#define _USE_MATH_DEFINES
 #include "our_gl.h"
-
+#include <cmath> // degree
 mat<4, 4> ModelView, Viewport, Perspective, ModelViewLight, N_M_minus;
 
 std::vector<double> zbuffer, shadow_zbuffer;
@@ -20,8 +21,12 @@ void init_modelview_light(const vec3 light, const vec3 center, const vec3 up) {
 		mat<4, 4>{{{1, 0, 0, -center.x}, { 0,1,0,-center.y }, { 0,0,1,-center.z }, { 0,0,0,1 }}};
 }
 
-void init_perspective(const double f) {
-	Perspective = { {{1,0,0,0}, {0,1,0,0}, {0,0,1,0}, {0,0, -1. / f,1}} };
+void init_perspective(const double n, const double f, const int width, const int height, const double fov) 
+{
+	double fov_angle = fov *  M_PI / 180.;
+	double tan_half = std::tan(fov_angle / 2.);
+	double aspect = width * 1. / (height * 1.);
+	Perspective = { {{1. / (aspect * tan_half),0,0,0}, {0,1. / tan_half,0,0}, {0,0, - 1. * (n + f)/ (f - n), - 1. *(2. * f * n) / (f - n)}, {0,0, -1, 0}}};
 }
 
 void init_viewport(const int x, const int y, const int w, const int h) {
@@ -31,12 +36,12 @@ void init_viewport(const int x, const int y, const int w, const int h) {
 
 void init_zbuffer(const int width, const int height)
 {
-	zbuffer = std::vector(width * height, -1000.);
+	zbuffer = std::vector(width * height, 1. );
 }
 
 void init_shadow_zbuffer(const int width, const int height)
 {
-	shadow_zbuffer = std::vector( width * height, -1000.);
+	shadow_zbuffer = std::vector( width * height, 1.);
 }
 
 void init_n_m_minus()
@@ -73,7 +78,7 @@ void shadow(TGAImage& shadowmap, const vec4(&clip)[])
 				continue;
 			}
 			double z = bc.x * ndc[0].z + bc.y * ndc[1].z + bc.z * ndc[2].z;
-			if (z > shadow_zbuffer[x + y * shadowmap.width()])
+			if (z < shadow_zbuffer[x + y * shadowmap.width()])
 			{
 				shadow_zbuffer[x + y * shadowmap.width()] = z;
 			}
@@ -108,7 +113,7 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 	auto [bbminx, bbmaxx] = std::minmax({ screen[0].x , screen[1].x, screen[2].x });
 	auto [bbminy, bbmaxy] = std::minmax({ screen[0].y , screen[1].y, screen[2].y });
 
-	mat<4, 4> uniform_M = Viewport * N_M_minus * Viewport.invert();
+	mat<4, 4> uniform_M = (Perspective * ModelView).invert();
 
 #pragma omp parallel for
 	for (int x = std::max<int>(bbminx, 0); x <= std::min<int>(bbmaxx, framebuffer.width() - 1); x++)
@@ -121,7 +126,7 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 				continue;//negative barycentric coordinate
 			}
 			double z = bc * vec3{ ndc[0].z,ndc[1].z,ndc[2].z };
-			if (z <= zbuffer[x + y * framebuffer.width()])
+			if (z > zbuffer[x + y * framebuffer.width()])
 				continue;
 
 			auto [discard, color] = shader.fragment(bc);
@@ -148,7 +153,7 @@ void rasterize(const vec4(&clip)[], const IShader& shader, TGAImage& framebuffer
 			{
 				// 对比深度 (加一个极小的 bias 偏移量防止阴影粉刺)
 				int shadow_idx = sx + sy * framebuffer.width();
-				if (shadow_z < shadow_zbuffer[shadow_idx] - 0.01)
+				if (shadow_z > shadow_zbuffer[shadow_idx] - 0.01)
 				{
 					// 点在阴影中
 					for (int c : {0, 1, 2}) color[c] *= 0.3;

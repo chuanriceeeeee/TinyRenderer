@@ -2,9 +2,10 @@
 #include "tgaimage.h"
 #include "geometry.h"
 #include <algorithm> //minmax 
+#include<cmath>//degree
 float triangle_area(const int xa, const int ya, const int xb, const int yb, const int xc, const int yc);
 void init_viewport(const int x, const int y, const int w, const int h);
-void init_perspective(const double f);
+void init_perspective(const double n, const double f, const int width, const int height, const double fov);
 void init_modelview(const vec3 eye, const vec3 center, const vec3 up);
 void init_modelview_light(const vec3 light, const vec3 center, const vec3 up);
 void init_zbuffer(const int width, const int height);
