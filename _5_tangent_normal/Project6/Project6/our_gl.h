@@ -20,6 +20,8 @@ struct IShader {
         //}
     virtual std::pair<bool, TGAColor> fragment(const vec3 bar) const = 0; // 声明此处为纯虚函数 const = 0;
     virtual TGAColor shadow(const vec3 shadow_bar, const TGAColor color) const = 0;
+    virtual vec4 shadow_bar(const vec3 shadow_bar) const = 0;
+
 };
 
 typedef vec4 Triangle[3]; // a triangle primitive is made of three ordered points
